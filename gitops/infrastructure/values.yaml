@@ -1,0 +1,32 @@
+# Global variables for all infrastructure applications
+global:
+  # IMPORTANT: Update this to match your Git repository URL
+  repoURL: "https://github.com/your-org/production-grade-gitops-platform.git"
+  targetRevision: "HEAD"
+  environment: "production"
+
+# Ingress Nginx Configuration
+ingressNginx:
+  enabled: true
+  namespace: ingress-nginx
+  chartVersion: "4.10.0"
+
+# Kube Prometheus Stack Configuration
+kubePrometheusStack:
+  enabled: true
+  namespace: monitoring
+  chartVersion: "58.2.2"
+  grafanaHost: "grafana.local"
+  prometheusHost: "prometheus.local"
+
+# Loki Stack Configuration
+lokiStack:
+  enabled: true
+  namespace: monitoring
+  chartVersion: "2.9.11" # Chart for loki-stack containing loki + promtail
+  aws:
+    # S3 bucket configuration for Loki log storage
+    # In production, replace these with output values from Terraform
+    s3Bucket: "gitops-eks-prod-loki-storage-bucket"
+    s3Region: "us-west-2"
+    roleArn: "arn:aws:iam::123456789012:role/gitops-eks-prod-loki-s3-role"

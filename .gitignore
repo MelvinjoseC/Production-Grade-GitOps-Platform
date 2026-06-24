@@ -1,0 +1,34 @@
+# Local IaC State & Providers
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Terraform Variables & Secrets
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# CLI Credentials & AWS Configs
+.developer/
+.aws/
+credentials
+secrets.yaml
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE Settings
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

@@ -1,0 +1,64 @@
+{{- if .Values.ingressNginx.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ingress-nginx
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: ingress-nginx
+    repoURL: https://kubernetes.github.io/ingress-nginx
+    targetRevision: {{ .Values.ingressNginx.chartVersion | quote }}
+    helm:
+      values: |
+        controller:
+          replicaCount: 2
+          
+          # Enterprise resources requests/limits
+          resources:
+            limits:
+              cpu: 500m
+              memory: 1024Mi
+            requests:
+              cpu: 100m
+              memory: 256Mi
+
+          # AWS Network Load Balancer (NLB) Integration
+          service:
+            enabled: true
+            annotations:
+              service.beta.kubernetes.io/aws-load-balancer-type: "external"
+              service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "instance"
+              service.beta.kubernetes.io/aws-load-balancer-scheme: "internet-facing"
+              # TLS offloading can be done here by pointing to an ACM Certificate ARN in AWS:
+              # service.beta.kubernetes.io/aws-load-balancer-ssl-cert: "arn:aws:acm:us-west-2:123456789012:certificate/abc-123"
+              # service.beta.kubernetes.io/aws-load-balancer-ssl-ports: "443"
+
+          # Enable Promethus metric scraping for NGINX ingress controller
+          metrics:
+            enabled: true
+            serviceMonitor:
+              enabled: true
+              namespace: {{ .Values.kubePrometheusStack.namespace | quote }}
+              additionalLabels:
+                release: kube-prometheus-stack
+
+          autoscaling:
+            enabled: true
+            minReplicas: 2
+            maxReplicas: 10
+            targetCPUUtilizationPercentage: 70
+            targetMemoryUtilizationPercentage: 70
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.ingressNginx.namespace | quote }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}

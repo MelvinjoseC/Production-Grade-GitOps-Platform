@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root-application
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io # Enable cascading deletion of child resources
+spec:
+  project: default
+  source:
+    # IMPORTANT: Update this to point to your actual GitOps repository
+    repoURL: 'https://github.com/your-org/production-grade-gitops-platform.git'
+    targetRevision: HEAD
+    path: gitops/infrastructure
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true      # Automatically delete resources no longer in Git
+      selfHeal: true   # Automatically revert manual cluster modifications
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true

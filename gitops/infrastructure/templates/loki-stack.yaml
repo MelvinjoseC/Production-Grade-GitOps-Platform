@@ -1,0 +1,116 @@
+{{- if .Values.lokiStack.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: loki-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: loki-stack
+    repoURL: https://grafana.github.io/helm-charts
+    targetRevision: {{ .Values.lokiStack.chartVersion | quote }}
+    helm:
+      values: |
+        # --- Loki Subchart Settings ---
+        loki:
+          enabled: true
+          
+          # Associate the service account with the AWS IAM role created by Terraform (IRSA)
+          serviceAccount:
+            create: true
+            name: loki
+            annotations:
+              eks.amazonaws.com/role-arn: {{ .Values.lokiStack.aws.roleArn | quote }}
+          
+          # Production S3 backend storage configuration
+          config:
+            auth_enabled: false
+            
+            # Retention configuration (keep logs for 14 days)
+            limits_config:
+              retention_period: 336h
+            
+            schema_config:
+              configs:
+                - from: 2020-10-24
+                  store: boltdb-shipper
+                  object_store: s3
+                  schema: v11
+                  index:
+                    prefix: index_
+                    period: 24h
+            
+            storage_config:
+              boltdb_shipper:
+                active_index_directory: /data/loki/boltdb-shipper-active
+                cache_location: /data/loki/boltdb-shipper-cache
+                cache_ttl: 24h
+                shared_store: s3
+              
+              aws:
+                s3: s3://{{ .Values.lokiStack.aws.s3Region }}/{{ .Values.lokiStack.aws.s3Bucket }}
+                s3forcepathstyle: true
+            
+            chunk_store_config:
+              max_look_back_period: 0s
+            
+            table_manager:
+              retention_deletes_enabled: true
+              retention_period: 336h
+          
+          # Pod resources for Loki engine
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 2048Mi
+            requests:
+              cpu: 250m
+              memory: 512Mi
+
+          # Persistent volume configuration for local cache
+          persistence:
+            enabled: true
+            storageClassName: gp3
+            size: 10Gi
+
+        # --- Promtail Subchart Settings (DaemonSet running on all EKS nodes) ---
+        promtail:
+          enabled: true
+          config:
+            lokiAddress: http://loki-stack.{{ .Values.kubePrometheusStack.namespace }}.svc.cluster.local:3100/loki/api/v1/push
+            
+            # Scrape configuration for shipping node logs and container logs
+            snippets:
+              extraScrapeConfigs: |
+                - job_name: kubernetes-pods-static
+                  kubernetes_sd_configs:
+                    - role: pod
+                  relabel_configs:
+                    - source_labels: [__meta_kubernetes_pod_annotation_promtail_io_scrape]
+                      action: keep
+                      regex: true
+                    - source_labels: [__meta_kubernetes_pod_container_name]
+                      target_label: container
+                    - source_labels: [__meta_kubernetes_pod_node_name]
+                      target_label: node
+          
+          resources:
+            limits:
+              cpu: 200m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.kubePrometheusStack.namespace | quote }} # Loki and Promtail live in the same monitoring namespace
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}

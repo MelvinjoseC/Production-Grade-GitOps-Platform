@@ -1,0 +1,102 @@
+{{- if .Values.kubePrometheusStack.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: kube-prometheus-stack
+    repoURL: https://prometheus-community.github.io/helm-charts
+    targetRevision: {{ .Values.kubePrometheusStack.chartVersion | quote }}
+    helm:
+      values: |
+        # --- Grafana Configuration ---
+        grafana:
+          enabled: true
+          adminPassword: "admin" # Set to a secure secret in production via secret manager
+          
+          # Ingress setup to access Grafana UI
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            annotations:
+              cert-manager.io/cluster-issuer: letsencrypt-prod
+              nginx.ingress.kubernetes.io/ssl-redirect: "false" # True if TLS certificates are configured
+            hosts:
+              - {{ .Values.kubePrometheusStack.grafanaHost | quote }}
+            path: /
+
+          # Automatically configure Loki as a datasource inside Grafana
+          additionalDataSources:
+            - name: Loki
+              type: loki
+              access: proxy
+              url: http://loki.{{ .Values.kubePrometheusStack.namespace }}.svc.cluster.local:3100
+              jsonData:
+                maxLines: 1000
+
+        # --- Prometheus Configuration ---
+        prometheus:
+          prometheusSpec:
+            # Enable storage persistence using AWS EBS GP3 volumes
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: gp3
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 20Gi
+            
+            # Namespace selectors for metrics discovery
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            
+            resources:
+              limits:
+                cpu: 1000m
+                memory: 4096Mi
+              requests:
+                cpu: 250m
+                memory: 1024Mi
+
+        # --- Alertmanager Configuration ---
+        alertmanager:
+          enabled: true
+          alertmanagerSpec:
+            storage:
+              volumeClaimTemplate:
+                spec:
+                  storageClassName: gp3
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 10Gi
+            resources:
+              limits:
+                cpu: 500m
+                memory: 1024Mi
+              requests:
+                cpu: 100m
+                memory: 256Mi
+
+        # --- Enable Exporters ---
+        nodeExporter:
+          enabled: true
+        kubeStateMetrics:
+          enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.kubePrometheusStack.namespace | quote }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}

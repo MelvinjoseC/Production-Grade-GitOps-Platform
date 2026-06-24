@@ -1,0 +1,99 @@
+# Enterprise ArgoCD Configuration Values (Helm)
+# Reference: https://github.com/argoproj/argo-helm/tree/main/charts/argo-cd
+
+global:
+  logging:
+    format: json
+    level: info
+
+# High Availability configuration for enterprise production scale
+controller:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2048Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true # Integrates with Prometheus Operator automatically
+
+dex:
+  enabled: true
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+redis:
+  exporter:
+    enabled: true
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+server:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1024Mi
+    requests:
+      cpu: 100m
+      memory: 256Mi
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+
+  # Security: Restrict traffic and enforce HTTPS
+  insecure: false
+  
+  # Configuration settings for ArgoCD UI and behavior
+  config:
+    name: "ArgoCD Enterprise Platform"
+    admin.enabled: "true" # In production, set to false and integrate with Okta/GitHub OIDC
+    
+    # Configure repository permissions and resource tracking
+    resource.exclusions: |
+      - apiGroups:
+        - eventing.keda.sh
+        kinds:
+        - CloudEventSource
+        clusters:
+        - *
+
+repoServer:
+  replicas: 2
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 2048Mi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+
+# Enable ingress to expose ArgoCD UI securely
+ingress:
+  enabled: true
+  ingressClassName: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
+  hosts:
+    - argocd.local
+  tls:
+    - secretName: argocd-server-tls
+      hosts:
+        - argocd.local
