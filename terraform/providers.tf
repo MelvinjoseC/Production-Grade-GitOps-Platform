@@ -22,10 +22,10 @@ terraform {
 
   # In production, configure an S3 backend with DynamoDB locking:
   # backend "s3" {
-  #   bucket         = "my-enterprise-tfstate"
-  #   key            = "gitops-platform/terraform.tfstate"
-  #   region         = "us-east-1"
-  #   dynamodb_table = "terraform-locks"
+  #   bucket         = "gitops-eks-prod-tf-state"
+  #   key            = "production/terraform.tfstate"
+  #   region         = "us-west-2"
+  #   dynamodb_table = "gitops-eks-prod-tf-locks"
   #   encrypt        = true
   # }
 }
