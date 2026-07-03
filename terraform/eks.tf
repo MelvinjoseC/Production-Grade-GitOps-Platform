@@ -40,11 +40,23 @@ resource "aws_kms_alias" "eks" {
   target_key_id = aws_kms_key.eks.key_id
 }
 
+# --- CloudWatch Log Group for EKS Cluster Control Plane Logs ---
+# Provisioned explicitly to manage retention period (default auto-created log group retains logs forever)
+resource "aws_cloudwatch_log_group" "eks" {
+  name              = "/aws/eks/${var.cluster_name}/cluster"
+  retention_in_days = 30
+
+  tags = {
+    Name = "${var.cluster_name}-eks-logs"
+  }
+}
+
 # --- EKS Cluster ---
 resource "aws_eks_cluster" "main" {
-  name     = var.cluster_name
-  role_arn = aws_iam_role.cluster.arn
-  version  = var.cluster_version
+  name                      = var.cluster_name
+  role_arn                  = aws_iam_role.cluster.arn
+  version                   = var.cluster_version
+  enabled_cluster_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
   vpc_config {
     subnet_ids              = aws_subnet.private[*].id
@@ -62,7 +74,8 @@ resource "aws_eks_cluster" "main" {
 
   depends_on = [
     aws_iam_role_policy_attachment.cluster_AmazonEKSClusterPolicy,
-    aws_iam_role_policy_attachment.cluster_AmazonEKSVPCResourceController
+    aws_iam_role_policy_attachment.cluster_AmazonEKSVPCResourceController,
+    aws_cloudwatch_log_group.eks
   ]
 }
 
