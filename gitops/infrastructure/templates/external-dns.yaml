@@ -1,0 +1,50 @@
+{{- if .Values.externalDns.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: external-dns
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: external-dns
+    repoURL: https://kubernetes-sigs.github.io/external-dns/
+    targetRevision: {{ .Values.externalDns.chartVersion | quote }}
+    helm:
+      values: |
+        provider: aws
+        
+        # Policy to determine if external-dns can delete DNS records
+        policy: sync
+        
+        # Filter sources to look for Ingress and Service resources
+        sources:
+          - service
+          - ingress
+          
+        # In production, associate the service account with the external-dns IAM Role
+        serviceAccount:
+          create: true
+          name: external-dns
+          annotations:
+            # eks.amazonaws.com/role-arn: "arn:aws:iam::123456789012:role/external-dns-role"
+            
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.externalDns.namespace | quote }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}
