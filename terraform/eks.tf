@@ -145,6 +145,11 @@ resource "aws_eks_node_group" "system" {
     role = "system"
   }
 
+  tags = {
+    "k8s.io/cluster-autoscaler/enabled"             = "true"
+    "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.node_AmazonEKSWorkerNodePolicy,
     aws_iam_role_policy_attachment.node_AmazonEKS_CNI_Policy,
@@ -173,6 +178,11 @@ resource "aws_eks_node_group" "workload" {
 
   labels = {
     role = "workload"
+  }
+
+  tags = {
+    "k8s.io/cluster-autoscaler/enabled"             = "true"
+    "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
   }
 
   # In production, you can add taints to isolate application workloads from system components:

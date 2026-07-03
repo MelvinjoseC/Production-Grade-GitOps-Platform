@@ -42,3 +42,8 @@ output "loki_s3_irsa_role_arn" {
   value       = aws_iam_role.loki_s3.arn
   description = "The ARN of the IAM Role for Loki S3 access"
 }
+
+output "cluster_autoscaler_irsa_role_arn" {
+  value       = aws_iam_role.cluster_autoscaler.arn
+  description = "The ARN of the IAM Role for Kubernetes Cluster Autoscaler"
+}
