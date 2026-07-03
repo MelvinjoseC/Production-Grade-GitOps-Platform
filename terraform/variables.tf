@@ -22,6 +22,12 @@ variable "availability_zones" {
   default     = ["us-west-2a", "us-west-2b", "us-west-2c"]
 }
 
+variable "single_nat_gateway" {
+  type        = bool
+  description = "Set to true to provision a single shared NAT Gateway for cost-efficiency. Set to false to provision a NAT Gateway per Availability Zone for production-grade high availability."
+  default     = false
+}
+
 variable "cluster_name" {
   type        = string
   description = "Name of the EKS cluster"
