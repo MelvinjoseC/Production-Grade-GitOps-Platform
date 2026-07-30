@@ -1,0 +1,24 @@
+aws_region         = "us-west-2"
+environment        = "production"
+vpc_cidr           = "10.0.0.0/16"
+availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+single_nat_gateway = false
+cluster_name       = "gitops-eks-prod"
+cluster_version    = "1.30"
+
+node_groups = {
+  system = {
+    instance_types = ["t3.medium"]
+    min_size       = 2
+    max_size       = 4
+    desired_size   = 2
+    capacity_type  = "ON_DEMAND"
+  }
+  workload = {
+    instance_types = ["m5.large"]
+    min_size       = 2
+    max_size       = 10
+    desired_size   = 2
+    capacity_type  = "ON_DEMAND"
+  }
+}
