@@ -121,6 +121,53 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
   role       = aws_iam_role.node.name
 }
 
+# --- Launch Templates for EKS Node Groups ---
+resource "aws_launch_template" "system" {
+  name_prefix   = "${var.cluster_name}-system-"
+  description   = "Launch template for EKS system node group to enforce IMDSv2"
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required" # Enforce IMDSv2
+    http_put_response_hop_limit = 2
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name        = "${var.cluster_name}-system-node"
+      Environment = var.environment
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_launch_template" "workload" {
+  name_prefix   = "${var.cluster_name}-workload-"
+  description   = "Launch template for EKS workload node group to enforce IMDSv2"
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required" # Enforce IMDSv2
+    http_put_response_hop_limit = 2
+  }
+
+  tag_specifications {
+    resource_type = "instance"
+    tags = {
+      Name        = "${var.cluster_name}-workload-node"
+      Environment = var.environment
+    }
+  }
+
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
 # --- EKS Managed Node Groups ---
 resource "aws_eks_node_group" "system" {
   cluster_name    = aws_eks_cluster.main.name
@@ -130,6 +177,11 @@ resource "aws_eks_node_group" "system" {
 
   instance_types = var.node_groups["system"].instance_types
   capacity_type  = var.node_groups["system"].capacity_type
+
+  launch_template {
+    name    = aws_launch_template.system.name
+    version = aws_launch_template.system.latest_version
+  }
 
   scaling_config {
     desired_size = var.node_groups["system"].desired_size
@@ -165,6 +217,11 @@ resource "aws_eks_node_group" "workload" {
 
   instance_types = var.node_groups["workload"].instance_types
   capacity_type  = var.node_groups["workload"].capacity_type
+
+  launch_template {
+    name    = aws_launch_template.workload.name
+    version = aws_launch_template.workload.latest_version
+  }
 
   scaling_config {
     desired_size = var.node_groups["workload"].desired_size
