@@ -1,0 +1,36 @@
+{{- if .Values.argoRollouts.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-rollouts
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    chart: argo-rollouts
+    repoURL: https://argoproj.github.io/argo-helm
+    targetRevision: {{ .Values.argoRollouts.chartVersion | quote }}
+    helm:
+      values: |
+        dashboard:
+          enabled: true
+        
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 64Mi
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.argoRollouts.namespace | quote }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}
