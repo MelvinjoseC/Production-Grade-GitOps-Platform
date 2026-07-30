@@ -14,6 +14,11 @@ variable "vpc_cidr" {
   type        = string
   description = "CIDR block for the VPC"
   default     = "10.0.0.0/16"
+
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){3}[0-9]{1,3}/[0-9]{1,2}$", var.vpc_cidr))
+    error_message = "The vpc_cidr value must be a valid CIDR block (e.g., 10.0.0.0/16)."
+  }
 }
 
 variable "availability_zones" {
@@ -38,6 +43,11 @@ variable "cluster_version" {
   type        = string
   description = "Kubernetes control plane version"
   default     = "1.30"
+
+  validation {
+    condition     = contains(["1.28", "1.29", "1.30", "1.31"], var.cluster_version)
+    error_message = "The cluster_version must be a supported EKS Kubernetes version: 1.28, 1.29, 1.30, or 1.31."
+  }
 }
 
 variable "node_groups" {
