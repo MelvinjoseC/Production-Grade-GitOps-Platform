@@ -19,6 +19,14 @@ spec:
           enabled: true
           adminPassword: "admin" # Set to a secure secret in production via secret manager
           
+          # Enable sidecar to automatically search for dashboard ConfigMaps and load them
+          sidecar:
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+              labelValue: "1"
+              searchNamespace: ALL
+
           # Ingress setup to access Grafana UI
           ingress:
             enabled: true
