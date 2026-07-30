@@ -105,7 +105,29 @@ spec:
                       target_label: container
                     - source_labels: [__meta_kubernetes_pod_node_name]
                       target_label: node
+
+                - job_name: journal
+                  journal:
+                    max_age: 12h
+                    path: /var/log/journal
+                    labels:
+                      job: systemd-journal
+                  relabel_configs:
+                    - source_labels: [__journal__systemd_unit]
+                      target_label: systemd_unit
+                    - source_labels: [__journal__hostname]
+                      target_label: hostname
           
+          # Volumes and mounts to access host systemd logs
+          extraVolumes:
+            - name: journal
+              hostPath:
+                path: /var/log/journal
+          extraVolumeMounts:
+            - name: journal
+              mountPath: /var/log/journal
+              readOnly: true
+
           resources:
             limits:
               cpu: 200m
