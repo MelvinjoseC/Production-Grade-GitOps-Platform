@@ -36,9 +36,32 @@ certManager:
   enabled: true
   namespace: cert-manager
   chartVersion: "v1.14.4"
+  email: "alert-devops@example.com"
 
 # External DNS Configuration
 externalDns:
   enabled: true
   namespace: external-dns
   chartVersion: "1.14.3"
+
+# Metrics Server Configuration
+metricsServer:
+  enabled: true
+  namespace: kube-system
+  chartVersion: "3.12.1"
+
+# Cluster Autoscaler Configuration
+clusterAutoscaler:
+  enabled: true
+  namespace: kube-system
+  chartVersion: "9.37.0"
+  clusterName: "gitops-eks-prod"
+  awsRegion: "us-west-2"
+  aws:
+    roleArn: "arn:aws:iam::123456789012:role/gitops-eks-prod-cluster-autoscaler-role"
+
+# Argo Rollouts Configuration
+argoRollouts:
+  enabled: true
+  namespace: argo-rollouts
+  chartVersion: "2.37.2"
