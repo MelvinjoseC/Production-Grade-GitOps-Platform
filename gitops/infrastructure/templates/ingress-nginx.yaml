@@ -17,6 +17,23 @@ spec:
         controller:
           replicaCount: 2
           
+          # Pod Anti-Affinity to ensure pods are scheduled across separate nodes
+          affinity:
+            podAntiAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                - labelSelector:
+                    matchExpressions:
+                      - key: app.kubernetes.io/name
+                        operator: In
+                        values:
+                          - ingress-nginx
+                  topologyKey: "kubernetes.io/hostname"
+
+          # Pod Disruption Budget to guarantee availability during node upgrades
+          podDisruptionBudget:
+            enabled: true
+            minAvailable: 1
+          
           # Enterprise resources requests/limits
           resources:
             limits:
