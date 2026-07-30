@@ -121,6 +121,11 @@ resource "aws_iam_role_policy_attachment" "node_AmazonEC2ContainerRegistryReadOn
   role       = aws_iam_role.node.name
 }
 
+resource "aws_iam_role_policy_attachment" "node_AmazonSSMManagedInstanceCore" {
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+  role       = aws_iam_role.node.name
+}
+
 # --- Launch Templates for EKS Node Groups ---
 resource "aws_launch_template" "system" {
   name_prefix   = "${var.cluster_name}-system-"
