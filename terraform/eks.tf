@@ -281,3 +281,13 @@ resource "aws_eks_addon" "vpc_cni" {
 
   depends_on = [aws_eks_node_group.system]
 }
+
+resource "aws_eks_addon" "coredns" {
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "coredns"
+  addon_version               = "v1.11.1-eksbuild.9"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [aws_eks_node_group.system]
+}
