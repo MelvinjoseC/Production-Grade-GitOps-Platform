@@ -291,3 +291,13 @@ resource "aws_eks_addon" "coredns" {
 
   depends_on = [aws_eks_node_group.system]
 }
+
+resource "aws_eks_addon" "kube_proxy" {
+  cluster_name                = aws_eks_cluster.main.name
+  addon_name                  = "kube-proxy"
+  addon_version               = "v1.30.0-eksbuild.3"
+  resolve_conflicts_on_create = "OVERWRITE"
+  resolve_conflicts_on_update = "OVERWRITE"
+
+  depends_on = [aws_eks_node_group.system]
+}
