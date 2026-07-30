@@ -16,6 +16,14 @@ spec:
       values: |
         installCRDs: true
         
+        # Enable Prometheus scraping via ServiceMonitor
+        prometheus:
+          enabled: true
+          servicemonitor:
+            enabled: true
+            labels:
+              release: kube-prometheus-stack
+
         replicaCount: 2
         
         resources:
