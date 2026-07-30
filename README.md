@@ -48,10 +48,12 @@ graph TD
 
 ### Core Features
 * **IaC Foundations**: Highly available VPC spanning 3 Availability Zones, NAT Gateways, and private subnets hosting EKS nodes.
-* **EKS Hardening**: Envelope encryption of K8s Secrets using **AWS KMS**, private control plane access enabled, and worker nodes isolated in private subnets.
-* **Identity Integration (IRSA)**: Integrates AWS IAM with Kubernetes Service Accounts via OIDC, eliminating long-lived credentials for the EBS CSI Driver and Loki S3 access.
+* **EKS Hardening**: Envelope encryption of K8s Secrets using **AWS KMS**, metadata service protection via **IMDSv2**, secure session access via **AWS SSM**, and isolated private worker subnets.
+* **Identity Integration (IRSA)**: Integrates AWS IAM with Kubernetes Service Accounts via OIDC, eliminating long-lived credentials for the EBS CSI Driver, Loki S3 access, and Cluster Autoscaler.
 * **GitOps App-of-Apps Pattern**: Uses a root ArgoCD application to manage lifecycle operations (pruning, self-healing, and syncing) for cluster-wide workloads.
-* **Observability (PLG Stack)**: Automated deployment of Prometheus (metrics metrics), Loki (centralized logs aggregated in S3), and Grafana dashboards.
+* **Observability (PLG Stack)**: Automated deployment of Prometheus (metrics), Loki (centralized logs aggregated in S3 with systemd journal scraping), and Grafana dashboards.
+* **Progressive Delivery & Auto-scaling**: Built-in Horizontal Pod Autoscaler (HPA) via Metrics Server, node auto-scaling via Cluster Autoscaler, and Canary/Blue-Green progressive deployments via Argo Rollouts.
+* **Cost Controls**: Built-in AWS Budgets with custom alerts to track EKS platform expenditures and avoid billing surprises.
 
 ---
 
@@ -59,13 +61,17 @@ graph TD
 
 ```
 .
+├── .github/workflows/                 # CI/CD Workflows
+│   └── lint.yml                       # GitHub Actions workflow for Terraform/Helm validation
 ├── terraform/                         # Terraform Infrastructure Code
-│   ├── providers.tf                   # Version constraints & provider declarations
-│   ├── variables.tf                   # Configurable input variables
+│   ├── providers.tf                   # Version constraints, provider configs, & EKS auth
+│   ├── variables.tf                   # Configurable input variables with safety validations
 │   ├── outputs.tf                     # Exported cluster/network outputs
 │   ├── vpc.tf                         # VPC, subnets, gateways, and routing
-│   ├── eks.tf                         # EKS Cluster, Node Groups, KMS, OIDC
-│   └── irsa.tf                        # IAM Roles for Service Accounts (EBS & Loki S3)
+│   ├── eks.tf                         # EKS Cluster, Node Groups (enforcing IMDSv2), KMS, OIDC
+│   ├── irsa.tf                        # IAM Roles for Service Accounts (EBS, Loki, & Autoscaler)
+│   ├── budgets.tf                     # AWS Budgets for cost control
+│   └── terraform.tfvars.example       # Example tfvars configuration template
 └── gitops/                            # ArgoCD GitOps Configurations
     ├── bootstrap/                     # Initial bootstrapping resources
     │   ├── argocd-install-values.yaml # Helm configuration overrides for ArgoCD HA
@@ -74,9 +80,15 @@ graph TD
         ├── Chart.yaml                 # Umbrella Helm chart
         ├── values.yaml                # Global config values (domains, roles, buckets)
         └── templates/                 # ArgoCD Application declarations
-            ├── ingress-nginx.yaml     # NGINX Ingress Controller App
-            ├── kube-prometheus.yaml   # Prometheus Operator & Grafana App
-            └── loki-stack.yaml        # Loki & Promtail Logging App
+            ├── ingress-nginx.yaml     # NGINX Ingress Controller App (HA-hardened)
+            ├── kube-prometheus.yaml   # Prometheus Operator & Grafana App (Dashboard Provider)
+            ├── loki-stack.yaml        # Loki & Promtail Logging App (Journal Scraping)
+            ├── cert-manager.yaml      # Cert-Manager Certificate controller
+            ├── cluster-issuer.yaml    # Let's Encrypt CA ClusterIssuer
+            ├── external-dns.yaml      # External-DNS integration
+            ├── metrics-server.yaml    # Metrics Server for resource utilization (HPA)
+            ├── cluster-autoscaler.yaml # Cluster Autoscaler for AWS scaling
+            └── argo-rollouts.yaml     # Argo Rollouts engine for Progressive Delivery
 ```
 
 ---
