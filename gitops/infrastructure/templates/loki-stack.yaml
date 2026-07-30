@@ -76,9 +76,18 @@ spec:
             storageClassName: gp3
             size: 10Gi
 
+          serviceMonitor:
+            enabled: true
+            additionalLabels:
+              release: kube-prometheus-stack
+
         # --- Promtail Subchart Settings (DaemonSet running on all EKS nodes) ---
         promtail:
           enabled: true
+          serviceMonitor:
+            enabled: true
+            additionalLabels:
+              release: kube-prometheus-stack
           config:
             lokiAddress: http://loki-stack.{{ .Values.kubePrometheusStack.namespace }}.svc.cluster.local:3100/loki/api/v1/push
             
