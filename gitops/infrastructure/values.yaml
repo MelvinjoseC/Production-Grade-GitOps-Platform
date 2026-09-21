@@ -76,3 +76,8 @@ externalSecrets:
   aws:
     roleArn: "arn:aws:iam::123456789012:role/gitops-eks-prod-external-secrets-role"
 
+# Kubernetes Zero-Trust Network Policies Configuration
+networkPolicies:
+  enabled: true
+
+
