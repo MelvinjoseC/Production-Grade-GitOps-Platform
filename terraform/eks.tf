@@ -51,6 +51,100 @@ resource "aws_cloudwatch_log_group" "eks" {
   }
 }
 
+# --- EKS Dedicated Control Plane Security Group ---
+resource "aws_security_group" "cluster" {
+  name        = "${var.cluster_name}-control-plane-sg"
+  description = "Dedicated security group for EKS cluster control plane"
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name = "${var.cluster_name}-control-plane-sg"
+  }
+}
+
+# --- EKS Dedicated Worker Node Security Group ---
+resource "aws_security_group" "node" {
+  name        = "${var.cluster_name}-node-sg"
+  description = "Dedicated security group for all EKS worker nodes"
+  vpc_id      = aws_vpc.main.id
+
+  tags = {
+    Name                                        = "${var.cluster_name}-node-sg"
+    "kubernetes.io/cluster/${var.cluster_name}" = "owned"
+  }
+}
+
+# --- Security Group Rules: Cluster <-> Node Hardened Communication ---
+resource "aws_security_group_rule" "cluster_ingress_node_https" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.cluster.id
+  source_security_group_id = aws_security_group.node.id
+  description              = "Allow worker nodes to communicate with the EKS cluster API server"
+}
+
+resource "aws_security_group_rule" "cluster_egress_node_kubelet" {
+  type                     = "egress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.cluster.id
+  source_security_group_id = aws_security_group.node.id
+  description              = "Allow control plane to communicate with worker node kubelets"
+}
+
+resource "aws_security_group_rule" "cluster_egress_node_https" {
+  type                     = "egress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.cluster.id
+  source_security_group_id = aws_security_group.node.id
+  description              = "Allow control plane to communicate with pods running admission webhooks"
+}
+
+resource "aws_security_group_rule" "node_ingress_cluster_https" {
+  type                     = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.node.id
+  source_security_group_id = aws_security_group.cluster.id
+  description              = "Allow control plane traffic to reach admission webhooks on nodes"
+}
+
+resource "aws_security_group_rule" "node_ingress_cluster_kubelet" {
+  type                     = "ingress"
+  from_port                = 10250
+  to_port                  = 10250
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.node.id
+  source_security_group_id = aws_security_group.cluster.id
+  description              = "Allow control plane traffic to reach kubelet on nodes"
+}
+
+resource "aws_security_group_rule" "node_ingress_self" {
+  type                     = "ingress"
+  from_port                = 0
+  to_port                  = 0
+  protocol                 = "-1"
+  security_group_id        = aws_security_group.node.id
+  source_security_group_id = aws_security_group.node.id
+  description              = "Allow node-to-node communication for pod networking"
+}
+
+resource "aws_security_group_rule" "node_egress_all" {
+  type              = "egress"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  security_group_id = aws_security_group.node.id
+  cidr_blocks       = ["0.0.0.0/0"]
+  description       = "Allow all outbound internet traffic from worker nodes"
+}
+
 # --- EKS Cluster ---
 resource "aws_eks_cluster" "main" {
   name                      = var.cluster_name
@@ -60,10 +154,12 @@ resource "aws_eks_cluster" "main" {
 
   vpc_config {
     subnet_ids              = aws_subnet.private[*].id
+    security_group_ids      = [aws_security_group.cluster.id]
     endpoint_private_access = true
-    endpoint_public_access  = true # Set to false in high-security environments; public for this platform showcase
+    endpoint_public_access  = true          # Set to false in high-security environments; public for this platform showcase
     public_access_cidrs     = ["0.0.0.0/0"] # Restrict to office/VPN IPs in enterprise
   }
+
 
   encryption_config {
     provider {
@@ -128,8 +224,9 @@ resource "aws_iam_role_policy_attachment" "node_AmazonSSMManagedInstanceCore" {
 
 # --- Launch Templates for EKS Node Groups ---
 resource "aws_launch_template" "system" {
-  name_prefix   = "${var.cluster_name}-system-"
-  description   = "Launch template for EKS system node group to enforce IMDSv2"
+  name_prefix            = "${var.cluster_name}-system-"
+  description            = "Launch template for EKS system node group to enforce IMDSv2"
+  vpc_security_group_ids = [aws_security_group.node.id]
 
   metadata_options {
     http_endpoint               = "enabled"
@@ -151,8 +248,9 @@ resource "aws_launch_template" "system" {
 }
 
 resource "aws_launch_template" "workload" {
-  name_prefix   = "${var.cluster_name}-workload-"
-  description   = "Launch template for EKS workload node group to enforce IMDSv2"
+  name_prefix            = "${var.cluster_name}-workload-"
+  description            = "Launch template for EKS workload node group to enforce IMDSv2"
+  vpc_security_group_ids = [aws_security_group.node.id]
 
   metadata_options {
     http_endpoint               = "enabled"
