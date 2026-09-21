@@ -47,3 +47,14 @@ output "cluster_autoscaler_irsa_role_arn" {
   value       = aws_iam_role.cluster_autoscaler.arn
   description = "The ARN of the IAM Role for Kubernetes Cluster Autoscaler"
 }
+
+output "vpc_endpoint_s3_id" {
+  value       = aws_vpc_endpoint.s3.id
+  description = "The ID of the S3 Gateway VPC Endpoint"
+}
+
+output "vpc_endpoints_security_group_id" {
+  value       = aws_security_group.vpc_endpoints.id
+  description = "The security group ID for VPC Interface Endpoints"
+}
+

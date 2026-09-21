@@ -27,8 +27,8 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = {
-    Name                     = "${var.environment}-public-${var.availability_zones[count.index]}"
-    "kubernetes.io/role/elb" = "1"
+    Name                                        = "${var.environment}-public-${var.availability_zones[count.index]}"
+    "kubernetes.io/role/elb"                    = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
 }
@@ -41,8 +41,8 @@ resource "aws_subnet" "private" {
   availability_zone = var.availability_zones[count.index]
 
   tags = {
-    Name                              = "${var.environment}-private-${var.availability_zones[count.index]}"
-    "kubernetes.io/role/internal-elb" = "1"
+    Name                                        = "${var.environment}-private-${var.availability_zones[count.index]}"
+    "kubernetes.io/role/internal-elb"           = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   }
 }
@@ -112,3 +112,103 @@ resource "aws_route_table_association" "private" {
   subnet_id      = aws_subnet.private[count.index].id
   route_table_id = aws_route_table.private[var.single_nat_gateway ? 0 : count.index].id
 }
+
+# ==============================================================================
+# VPC Endpoints for Secure Private Cluster Communication & Cost Optimization
+# ==============================================================================
+
+# Security Group for VPC Interface Endpoints
+resource "aws_security_group" "vpc_endpoints" {
+  name        = "${var.environment}-vpc-endpoints-sg"
+  description = "Security group for VPC Interface Endpoints (ECR, STS, CloudWatch Logs)"
+  vpc_id      = aws_vpc.main.id
+
+  ingress {
+    description = "Allow HTTPS inbound from VPC CIDR"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.environment}-vpc-endpoints-sg"
+  }
+}
+
+# Gateway Endpoint for Amazon S3 (Free, high-throughput access for Loki and TF state)
+resource "aws_vpc_endpoint" "s3" {
+  vpc_id            = aws_vpc.main.id
+  service_name      = "com.amazonaws.${var.aws_region}.s3"
+  vpc_endpoint_type = "Gateway"
+  route_table_ids   = concat(aws_route_table.private[*].id, [aws_route_table.public.id])
+
+  tags = {
+    Name = "${var.environment}-s3-gateway-endpoint"
+  }
+}
+
+# Interface Endpoint for ECR API
+resource "aws_vpc_endpoint" "ecr_api" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ecr.api"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.environment}-ecr-api-endpoint"
+  }
+}
+
+# Interface Endpoint for ECR Docker Registry
+resource "aws_vpc_endpoint" "ecr_dkr" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.ecr.dkr"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.environment}-ecr-dkr-endpoint"
+  }
+}
+
+# Interface Endpoint for AWS STS (Required for IRSA token assumption)
+resource "aws_vpc_endpoint" "sts" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.sts"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.environment}-sts-endpoint"
+  }
+}
+
+# Interface Endpoint for CloudWatch Logs (EKS control plane and container log streaming)
+resource "aws_vpc_endpoint" "logs" {
+  vpc_id              = aws_vpc.main.id
+  service_name        = "com.amazonaws.${var.aws_region}.logs"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = aws_subnet.private[*].id
+  security_group_ids  = [aws_security_group.vpc_endpoints.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.environment}-logs-endpoint"
+  }
+}
+
