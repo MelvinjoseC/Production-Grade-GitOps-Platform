@@ -85,5 +85,10 @@ sampleWorkload:
   enabled: true
   namespace: apps
 
+# Pod Security Standards (PSA) Admission Control Configuration
+podSecurityStandards:
+  enabled: true
+
+
 
 
