@@ -66,3 +66,13 @@ argoRollouts:
   enabled: true
   namespace: argo-rollouts
   chartVersion: "2.37.2"
+
+# External Secrets Operator Configuration
+externalSecrets:
+  enabled: true
+  namespace: external-secrets
+  chartVersion: "0.9.14"
+  awsRegion: "us-west-2"
+  aws:
+    roleArn: "arn:aws:iam::123456789012:role/gitops-eks-prod-external-secrets-role"
+

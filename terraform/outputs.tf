@@ -53,6 +53,11 @@ output "cluster_autoscaler_irsa_role_arn" {
   description = "The ARN of the IAM Role for Kubernetes Cluster Autoscaler"
 }
 
+output "external_secrets_irsa_role_arn" {
+  value       = aws_iam_role.external_secrets.arn
+  description = "The ARN of the IAM Role for External Secrets Operator"
+}
+
 output "vpc_endpoint_s3_id" {
   value       = aws_vpc_endpoint.s3.id
   description = "The ID of the S3 Gateway VPC Endpoint"
