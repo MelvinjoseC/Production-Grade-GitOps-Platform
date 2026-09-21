@@ -1,0 +1,25 @@
+{{- if .Values.sampleWorkload.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-workload
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  # Uses the isolated workloads AppProject created for multi-tenancy
+  project: workloads
+  source:
+    repoURL: {{ .Values.global.repoURL | quote }}
+    targetRevision: {{ .Values.global.targetRevision | quote }}
+    path: gitops/applications/sample-workload
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: {{ .Values.sampleWorkload.namespace | default "apps" | quote }}
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+{{- end }}

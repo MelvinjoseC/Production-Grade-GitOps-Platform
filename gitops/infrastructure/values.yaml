@@ -80,4 +80,10 @@ externalSecrets:
 networkPolicies:
   enabled: true
 
+# Sample Progressive Delivery Workload (Argo Rollouts Canary)
+sampleWorkload:
+  enabled: true
+  namespace: apps
+
+
 

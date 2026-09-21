@@ -1,0 +1,33 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-api-stable
+  namespace: apps
+  labels:
+    app: demo-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: demo-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-api-canary
+  namespace: apps
+  labels:
+    app: demo-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app: demo-api
