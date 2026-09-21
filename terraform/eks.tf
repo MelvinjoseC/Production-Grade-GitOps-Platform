@@ -24,11 +24,66 @@ resource "aws_iam_role_policy_attachment" "cluster_AmazonEKSVPCResourceControlle
   role       = aws_iam_role.cluster.name
 }
 
-# --- KMS Key for Envelope Encryption of Secrets ---
+# --- Current AWS Caller Identity for Policies ---
+data "aws_caller_identity" "current" {}
+
+# --- KMS Key Policy for EKS Envelope & EBS Encryption ---
+data "aws_iam_policy_document" "kms_key_policy" {
+  statement {
+    sid       = "EnableIAMUserPermissions"
+    effect    = "Allow"
+    actions   = ["kms:*"]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:root"]
+    }
+  }
+
+  statement {
+    sid    = "AllowEKSClusterRoleUsage"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey"
+    ]
+    resources = ["*"]
+
+    principals {
+      type        = "AWS"
+      identifiers = [aws_iam_role.cluster.arn]
+    }
+  }
+
+  statement {
+    sid    = "AllowCloudWatchLogsUsage"
+    effect = "Allow"
+    actions = [
+      "kms:Encrypt*",
+      "kms:Decrypt*",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:Describe*"
+    ]
+    resources = ["*"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["logs.${var.aws_region}.amazonaws.com"]
+    }
+  }
+}
+
+# --- KMS Key for Envelope Encryption of Secrets & Storage ---
 resource "aws_kms_key" "eks" {
-  description             = "KMS Key for EKS Secret Encryption"
+  description             = "KMS Key for EKS Secret Encryption and Persistent Storage"
   deletion_window_in_days = 7
   enable_key_rotation     = true
+  policy                  = data.aws_iam_policy_document.kms_key_policy.json
 
   tags = {
     Name = "${var.cluster_name}-kms-key"
@@ -39,6 +94,16 @@ resource "aws_kms_alias" "eks" {
   name          = "alias/${var.cluster_name}-secrets"
   target_key_id = aws_kms_key.eks.key_id
 }
+
+# --- Regional EBS Encryption by Default with Cluster KMS Key ---
+resource "aws_ebs_encryption_by_default" "main" {
+  enabled = true
+}
+
+resource "aws_ebs_default_kms_key" "main" {
+  key_arn = aws_kms_key.eks.arn
+}
+
 
 # --- CloudWatch Log Group for EKS Cluster Control Plane Logs ---
 # Provisioned explicitly to manage retention period (default auto-created log group retains logs forever)

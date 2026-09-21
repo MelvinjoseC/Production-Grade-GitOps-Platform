@@ -63,3 +63,14 @@ output "vpc_endpoints_security_group_id" {
   description = "The security group ID for VPC Interface Endpoints"
 }
 
+output "kms_key_arn" {
+  value       = aws_kms_key.eks.arn
+  description = "The ARN of the KMS key used for EKS Secret and EBS encryption"
+}
+
+output "kms_key_alias" {
+  value       = aws_kms_alias.eks.name
+  description = "The alias of the KMS key"
+}
+
+
