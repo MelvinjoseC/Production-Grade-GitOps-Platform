@@ -6,7 +6,7 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io # Enable cascading deletion of child resources
 spec:
-  project: default
+  project: core-infrastructure
   source:
     # IMPORTANT: Update this to point to your actual GitOps repository
     repoURL: 'https://github.com/your-org/production-grade-gitops-platform.git'

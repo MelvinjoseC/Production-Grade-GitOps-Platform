@@ -4,6 +4,7 @@ global:
   repoURL: "https://github.com/your-org/production-grade-gitops-platform.git"
   targetRevision: "HEAD"
   environment: "production"
+  project: "core-infrastructure"
 
 # Ingress Nginx Configuration
 ingressNginx:
