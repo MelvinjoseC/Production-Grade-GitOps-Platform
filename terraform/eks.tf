@@ -225,6 +225,11 @@ resource "aws_eks_cluster" "main" {
     public_access_cidrs     = ["0.0.0.0/0"] # Restrict to office/VPN IPs in enterprise
   }
 
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true
+  }
+
 
   encryption_config {
     provider {
@@ -463,4 +468,22 @@ resource "aws_eks_addon" "kube_proxy" {
   resolve_conflicts_on_update = "OVERWRITE"
 
   depends_on = [aws_eks_node_group.system]
+}
+
+
+# --- EKS Access Entries: Modern IAM-to-Kubernetes RBAC ---
+resource "aws_eks_access_entry" "cluster_admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = data.aws_caller_identity.current.arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "cluster_admin" {
+  cluster_name  = aws_eks_cluster.main.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = data.aws_caller_identity.current.arn
+
+  access_scope {
+    type = "cluster"
+  }
 }
