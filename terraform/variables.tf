@@ -76,3 +76,9 @@ variable "node_groups" {
     }
   }
 }
+
+variable "external_secrets_path_prefix" {
+  type        = string
+  description = "Allowed prefix path in AWS Secrets Manager and SSM Parameter Store for External Secrets Operator access"
+  default     = "gitops/"
+}

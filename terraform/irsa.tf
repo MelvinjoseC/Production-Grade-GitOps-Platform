@@ -139,6 +139,11 @@ resource "aws_iam_policy" "cluster_autoscaler" {
           "autoscaling:TerminateInstanceInAutoScalingGroup"
         ]
         Resource = "*"
+        Condition = {
+          StringEquals = {
+            "autoscaling:ResourceTag/k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+          }
+        }
       }
     ]
   })
@@ -190,7 +195,7 @@ resource "aws_iam_policy" "external_secrets" {
           "secretsmanager:ListSecretVersionIds"
         ]
         Resource = [
-          "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:*"
+          "arn:aws:secretsmanager:${var.aws_region}:${data.aws_caller_identity.current.account_id}:secret:${var.external_secrets_path_prefix}*"
         ]
       },
       {
@@ -201,7 +206,7 @@ resource "aws_iam_policy" "external_secrets" {
           "ssm:GetParametersByPath"
         ]
         Resource = [
-          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/*"
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/${var.external_secrets_path_prefix}*"
         ]
       },
       {
