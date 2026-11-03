@@ -19,6 +19,8 @@ spec:
         args:
           - name: service-name
             value: demo-api-canary
+          - name: ingress-name
+            value: demo-api-ingress
       steps:
         - setWeight: 20
         - pause: { duration: 1m }
@@ -36,6 +38,23 @@ spec:
       labels:
         app: demo-api
     spec:
+      terminationGracePeriodSeconds: 30
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: demo-api
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app: demo-api
+                topologyKey: kubernetes.io/hostname
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001

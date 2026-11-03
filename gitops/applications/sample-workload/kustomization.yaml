@@ -8,6 +8,8 @@ resources:
   - analysis-template.yaml
   - service.yaml
   - ingress.yaml
+  - pdb.yaml
+  - hpa.yaml
 
 commonLabels:
   app.kubernetes.io/part-of: progressive-delivery-demo
