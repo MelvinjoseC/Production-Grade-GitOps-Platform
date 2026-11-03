@@ -172,4 +172,60 @@ spec:
       ports:
         - protocol: TCP
           port: 443
+---
+# Workload Namespace: Zero-Trust Isolation for Business Applications
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: workload-isolation
+  namespace: {{ .Values.sampleWorkload.namespace | default "apps" | quote }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow intra-namespace pod-to-pod communication
+    - from:
+        - podSelector: {}
+    # Allow ingress traffic from Ingress NGINX controller on container HTTP port
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.ingressNginx.namespace }}
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow Prometheus metrics scraping from monitoring namespace
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ .Values.kubePrometheusStack.namespace }}
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow intra-namespace pod-to-pod communication
+    - to:
+        - podSelector: {}
+    # Allow DNS queries to CoreDNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow outbound HTTPS to VPC Endpoints and AWS services
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+      ports:
+        - protocol: TCP
+          port: 443
 {{- end }}
