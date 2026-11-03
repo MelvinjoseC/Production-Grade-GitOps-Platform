@@ -9,7 +9,7 @@ spec:
   project: core-infrastructure
   source:
     # IMPORTANT: Update this to point to your actual GitOps repository
-    repoURL: 'https://github.com/your-org/production-grade-gitops-platform.git'
+    repoURL: 'https://github.com/MelvinjoseC/Production-Grade-GitOps-Platform.git'
     targetRevision: HEAD
     path: gitops/infrastructure
     helm:

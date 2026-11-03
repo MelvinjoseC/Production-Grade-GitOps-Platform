@@ -1,7 +1,7 @@
 # Global variables for all infrastructure applications
 global:
   # IMPORTANT: Update this to match your Git repository URL
-  repoURL: "https://github.com/your-org/production-grade-gitops-platform.git"
+  repoURL: "https://github.com/MelvinjoseC/Production-Grade-GitOps-Platform.git"
   targetRevision: "HEAD"
   environment: "production"
   project: "core-infrastructure"
