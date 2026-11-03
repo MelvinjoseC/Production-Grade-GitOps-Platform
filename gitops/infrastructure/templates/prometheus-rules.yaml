@@ -31,8 +31,28 @@ spec:
             summary: "ArgoCD Application {{ $labels.name }} sync failed"
             description: "Application {{ $labels.name }} failed syncing resources. Check ArgoCD application controller logs and sync error messages."
 
+        - alert: ArgoRolloutDegraded
+          expr: argo_rollouts_info{status="Degraded"} > 0
+          for: 3m
+          labels:
+            severity: critical
+            tier: workload
+          annotations:
+            summary: "Argo Rollout {{ $labels.name }} in {{ $labels.namespace }} is degraded"
+            description: "Canary analysis failed or rollback was triggered for Rollout {{ $labels.name }}."
+
     - name: platform.kubernetes.rules
       rules:
+        - alert: KubeNodeNotReady
+          expr: kube_node_status_condition{condition="Ready",status="true"} == 0
+          for: 5m
+          labels:
+            severity: critical
+            tier: infrastructure
+          annotations:
+            summary: "Node {{ $labels.node }} is NotReady"
+            description: "EKS node {{ $labels.node }} has been unready for more than 5 minutes."
+
         - alert: KubePodCrashLooping
           expr: rate(kube_pod_container_status_restarts_total[10m]) * 60 > 0.5
           for: 5m
@@ -62,6 +82,28 @@ spec:
           annotations:
             summary: "Node {{ $labels.instance }} disk utilization is above 85%"
             description: "Root filesystem on node {{ $labels.instance }} is filling up."
+
+        - alert: PersistentVolumeNearCapacity
+          expr: kubelet_volume_stats_available_bytes / kubelet_volume_stats_capacity_bytes * 100 < 15
+          for: 15m
+          labels:
+            severity: warning
+            tier: storage
+          annotations:
+            summary: "PersistentVolume {{ $labels.persistentvolumeclaim }} is almost full"
+            description: "Available disk on PVC {{ $labels.persistentvolumeclaim }} in namespace {{ $labels.namespace }} is below 15%."
+
+    - name: platform.security.rules
+      rules:
+        - alert: ExternalSecretSyncFailed
+          expr: external_secrets_sync_calls_error > 0
+          for: 5m
+          labels:
+            severity: critical
+            tier: security
+          annotations:
+            summary: "External Secrets Operator synchronization failure"
+            description: "ESO is failing to retrieve secrets from AWS Secrets Manager for secret {{ $labels.name }}."
 
     - name: platform.ingress.rules
       rules:
