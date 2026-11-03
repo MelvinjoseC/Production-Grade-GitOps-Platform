@@ -52,6 +52,39 @@ resource "aws_s3_bucket_public_access_block" "loki_storage" {
   restrict_public_buckets = true
 }
 
+# Server-side KMS encryption for Loki log storage
+resource "aws_s3_bucket_server_side_encryption_configuration" "loki_storage" {
+  bucket = aws_s3_bucket.loki_storage.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      kms_master_key_id = aws_kms_key.eks.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+# Lifecycle management for Loki log chunks
+resource "aws_s3_bucket_lifecycle_configuration" "loki_storage" {
+  bucket = aws_s3_bucket.loki_storage.id
+
+  rule {
+    id     = "loki-log-retention"
+    status = "Enabled"
+
+    filter {}
+
+    transition {
+      days          = 30
+      storage_class = "STANDARD_IA"
+    }
+
+    expiration {
+      days = 90
+    }
+  }
+}
+
 # IAM Policy for Loki to read/write from/to the S3 bucket
 resource "aws_iam_policy" "loki_s3" {
   name        = "${var.cluster_name}-loki-s3-policy"

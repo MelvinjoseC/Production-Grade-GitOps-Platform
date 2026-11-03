@@ -16,13 +16,30 @@ resource "aws_s3_bucket_versioning" "terraform_state" {
   }
 }
 
-# Enable server-side encryption by default
+# Enable server-side encryption by default using KMS
 resource "aws_s3_bucket_server_side_encryption_configuration" "terraform_state" {
   bucket = aws_s3_bucket.terraform_state.id
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      kms_master_key_id = aws_kms_key.eks.arn
+      sse_algorithm     = "aws:kms"
+    }
+  }
+}
+
+# Lifecycle policy to manage noncurrent state version retention and control storage cost
+resource "aws_s3_bucket_lifecycle_configuration" "terraform_state" {
+  bucket = aws_s3_bucket.terraform_state.id
+
+  rule {
+    id     = "expire-noncurrent-state-versions"
+    status = "Enabled"
+
+    filter {}
+
+    noncurrent_version_expiration {
+      noncurrent_days = 90
     }
   }
 }
