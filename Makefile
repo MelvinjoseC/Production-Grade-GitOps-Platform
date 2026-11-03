@@ -21,6 +21,11 @@ lint: ## Run format checks and Helm linting
 	@echo "==> Validating Helm chart templates..."
 	helm lint gitops/infrastructure
 
+.PHONY: k8s-validate
+k8s-validate: ## Validate Kubernetes manifests with kubeconform
+	@echo "==> Validating Kubernetes manifests with kubeconform..."
+	kubeconform -summary -ignore-missing-schemas gitops/applications/sample-workload/ gitops/bootstrap/
+
 .PHONY: tf-init
 tf-init: ## Initialize Terraform providers and backend
 	@echo "==> Initializing Terraform..."

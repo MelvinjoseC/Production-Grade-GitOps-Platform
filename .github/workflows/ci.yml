@@ -51,6 +51,22 @@ jobs:
       - name: Helm Lint Infrastructure
         run: helm lint gitops/infrastructure
 
+  kubeconform-validate:
+    name: Kubernetes Schema Validation (Kubeconform)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Kubeconform
+        uses: yannh/kubeconform-action@v0.0.32
+        with:
+          k8s_version: "1.30.0"
+          files: "gitops/applications/sample-workload/*.yaml gitops/bootstrap/*.yaml"
+          schema_locations: |
+            default
+            https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{ .ResourceAPIGroup }}/{{ .ResourceKind }}_{{ .ResourceAPIVersion }}.json
+
   security-iac-scan:
     name: Trivy IaC Security & Misconfiguration Scan
     runs-on: ubuntu-latest
@@ -66,6 +82,20 @@ jobs:
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
+
+  checkov-scan:
+    name: Checkov IaC Security Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          framework: terraform
+          output_format: cli
+          soft_fail: true
 
   secret-detection:
     name: Gitleaks Secret Detection
