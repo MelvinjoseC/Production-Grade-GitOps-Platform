@@ -14,6 +14,7 @@ resource "aws_flow_log" "main" {
 resource "aws_cloudwatch_log_group" "vpc_flow_logs" {
   name              = "/aws/vpc-flow-log/${var.cluster_name}"
   retention_in_days = 30
+  kms_key_id        = aws_kms_key.eks.arn
 
   tags = {
     Name = "${var.cluster_name}-vpc-flow-logs-group"
